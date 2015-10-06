@@ -24,6 +24,27 @@ uint8_t const ADXL_CONFIG_RESET[] = {ADXL_CMD_WRITE_REG,ADXL_REG_SOFT_RESET,0x52
 uint8_t const ADXL_CONFIG_FILTER[] = {ADXL_CMD_WRITE_REG,ADXL_REG_FILTER_CTL,0x17};
 ///////////////////////////////////////////////////////////////////////////////
 
+uint8_t const ADXL_READ_TEMP[] = {ADXL_CMD_READ_REG, ADXL_REG_TEMP_L, 0x00, 0x00};
+
+/**
+ * Grab one sample from the ADXL362 accelerometer
+ */
+BOOL ACCEL_readTemp(temperature_t_8* result) {
+
+    while(!SPI_acquirePort());
+
+    BITCLR(POUT_ACCEL_CS, PIN_ACCEL_CS);
+    SPI_transaction(gpRxBuf, (uint8_t*)ADXL_READ_TEMP, sizeof(ADXL_READ_TEMP));
+    BITSET(POUT_ACCEL_CS, PIN_ACCEL_CS);
+
+    SPI_releasePort();
+
+    result->L = gpRxBuf[2];
+    result->H = gpRxBuf[3];
+
+    return SUCCESS;
+}
+
 /**
  * Turn on and start up the ADXL362 accelerometer. This leaves the ADXL running.
  */

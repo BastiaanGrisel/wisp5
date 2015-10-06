@@ -22,12 +22,18 @@ typedef struct {
     uint8_t z;
 } threeAxis_t_8;
 
+typedef struct {
+	uint8_t L;
+	uint8_t H;
+} temperature_t_8;
+
 BOOL ACCEL_initialize();
 BOOL ACCEL_singleSample(threeAxis_t_8* result);
 BOOL ACCEL_readStat(threeAxis_t_8* result);
 BOOL ACCEL_readID(threeAxis_t_8* result);
 BOOL ACCEL_reset();
 BOOL ACCEL_range();
+BOOL ACCEL_readTemp(temperature_t_8* result);
 
 
 #endif /* ACCEL_H_ */
