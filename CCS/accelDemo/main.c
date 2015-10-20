@@ -56,7 +56,7 @@ void my_blockWriteCallback  (void) {
  */
 void main(void) {
 
-	temperature_t_8 temperature;
+	temperature_t_8 temperature_acc;
 
 	WISP_init();
 
@@ -65,6 +65,7 @@ void main(void) {
     WISP_registerCallback_READ(&my_readCallback);
     WISP_registerCallback_WRITE(&my_writeCallback);
     WISP_registerCallback_BLOCKWRITE(&my_blockWriteCallback);
+    BITSET(PMEAS_ENDIR, PIN_MEAS_EN); // SET direction of MEAS_EN pin to output!
 
     // Get access to EPC, READ, and WRITE data buffers
     WISP_getDataBuffers(&wispData);
@@ -117,16 +118,21 @@ void main(void) {
 		ACCEL_readStat(&accelOut);
 	}
 	__delay_cycles(5);
+
 	ACCEL_singleSample(&accelOut);
 
-	ACCEL_readTemp(&temperature);
+	// Init ADC
+	ADC_initCustom(ADC_reference_2_0V, ADC_precision_10bit,
+	            ADC_input_temperature);
 
     // Set up EPC, copy in sensor data
 	wispData.epcBuf[0] = 0xFF; // Tag type: Accelerometer
-	wispData.epcBuf[1] = temperature.H;
-	wispData.epcBuf[2] = temperature.L;
-	wispData.epcBuf[3] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
-	wispData.epcBuf[4] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
+	wispData.epcBuf[1] = 0;
+	wispData.epcBuf[2] = 0;
+	wispData.epcBuf[3] = 0;
+	wispData.epcBuf[4] = 0;
+	wispData.epcBuf[5] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
+	wispData.epcBuf[6] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
 
     while (FOREVER) {
     	ACCEL_readStat(&accelOut);
@@ -136,10 +142,15 @@ void main(void) {
     	}
     	__delay_cycles(5);
 
-    	ACCEL_readTemp(&temperature);
-    	wispData.epcBuf[1] = temperature.H; // Y value MSB
-    	wispData.epcBuf[2] = temperature.L; // Y value LS
+    	ACCEL_readTemp(&temperature_acc);
 
+    	uint16_t adc_value = ADC_read();
+		int16_t adc_temperature = ADC_rawToTemperature(adc_value);
+
+    	wispData.epcBuf[1] = temperature_acc.H;
+    	wispData.epcBuf[2] = temperature_acc.L;
+		wispData.epcBuf[3] = (adc_temperature >> 8) & 0xFF;
+		wispData.epcBuf[4] = (adc_temperature >> 0) & 0xFF;
 //		ACCEL_singleSample(&accelOut);
 //		wispData.epcBuf[2] = accelOut.y + 128;
 //		wispData.epcBuf[4] = accelOut.x + 128;
