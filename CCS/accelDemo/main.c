@@ -126,22 +126,27 @@ void main(void) {
 	            ADC_input_temperature);
 
     // Set up EPC, copy in sensor data
-	wispData.epcBuf[0] = 0xFF; // Tag type: Accelerometer
+	wispData.epcBuf[0] = 0xEE; // Tag type: Accelerometer
 	wispData.epcBuf[1] = 0;
 	wispData.epcBuf[2] = 0;
 	wispData.epcBuf[3] = 0;
 	wispData.epcBuf[4] = 0;
-	wispData.epcBuf[5] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
-	wispData.epcBuf[6] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
+	wispData.epcBuf[5] = 0;
+	wispData.epcBuf[6] = 0;
+	wispData.epcBuf[7] = 0;
+	wispData.epcBuf[8] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
+	wispData.epcBuf[9] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
 
     while (FOREVER) {
     	ACCEL_readStat(&accelOut);
+
     	while((accelOut.x & 193) != 0x41){
     		ACCEL_readStat(&accelOut);
     		__delay_cycles(5);
     	}
     	__delay_cycles(5);
 
+    	ACCEL_singleSample(&accelOut);
     	ACCEL_readTemp(&temperature_acc);
 
     	uint16_t adc_value = ADC_read();
@@ -151,10 +156,11 @@ void main(void) {
     	wispData.epcBuf[2] = temperature_acc.L;
 		wispData.epcBuf[3] = (adc_temperature >> 8) & 0xFF;
 		wispData.epcBuf[4] = (adc_temperature >> 0) & 0xFF;
+		wispData.epcBuf[5] = accelOut.x + 128; //y
+		wispData.epcBuf[6] = accelOut.y + 128; //x
+		wispData.epcBuf[7] = accelOut.z + 128;
+
 //		ACCEL_singleSample(&accelOut);
-//		wispData.epcBuf[2] = accelOut.y + 128;
-//		wispData.epcBuf[4] = accelOut.x + 128;
-//		wispData.epcBuf[6] = accelOut.z + 128;
 
 //    	BITCLR(P2SEL1 , PIN_ACCEL_SCLK | PIN_ACCEL_MISO | PIN_ACCEL_MOSI);
 //    	BITCLR(P2SEL0 , PIN_ACCEL_SCLK | PIN_ACCEL_MISO | PIN_ACCEL_MOSI);
@@ -165,6 +171,5 @@ void main(void) {
 //    	P4DIR |= PIN_ACCEL_CS;
 //    	BITSET(P2SEL1 , PIN_ACCEL_SCLK | PIN_ACCEL_MISO | PIN_ACCEL_MOSI);
 //    	BITCLR(P2SEL0 , PIN_ACCEL_SCLK | PIN_ACCEL_MISO | PIN_ACCEL_MOSI);
-
    }
 }
